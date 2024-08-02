@@ -13,19 +13,23 @@ uses
   DelphiAIDev.Consts,
   DelphiAIDev.Utils,
   DelphiAIDev.Utils.OTA,
-  DelphiAIDev.Settings;
+  DelphiAIDev.Settings,
+  HtmlView
+  ;
 
 type
   TDelphiAIDevChatProcessResponse = class
   private
-    FRichEdit: TRichEdit;
+//    FRichEdit: TRichEdit;
+    FHtmlViewer: THtmlViewer;
     FSettings: TDelphiAIDevSettings;
     FCurrentColor: TColor;
     procedure AddResponseLine(const ALineStr: string);
     procedure BoldInWordsBetweenBacktick(const ALineStr: string);
     procedure BoldInWordsBetweenTwoAsterisk(const ALineStr: string);
   public
-    constructor Create(const ARichEdit: TRichEdit);
+//    constructor Create(const ARichEdit: TRichEdit);
+    constructor Create(const AHtmlViewer: THtmlViewer);
     procedure AddResponseComplete(const AStrings: TStrings);
   end;
 
@@ -35,9 +39,11 @@ const
   BACKTICK = '`';
   ASTERISK = '*';
 
-constructor TDelphiAIDevChatProcessResponse.Create(const ARichEdit: TRichEdit);
+//constructor TDelphiAIDevChatProcessResponse.Create(const ARichEdit: TRichEdit);
+constructor TDelphiAIDevChatProcessResponse.Create(const AHtmlViewer: THtmlViewer);
 begin
-  FRichEdit := ARichEdit;
+//  FRichEdit := ARichEdit;
+  FHtmlViewer := AHtmlViewer;
   FSettings := TDelphiAIDevSettings.GetInstance;
 end;
 
@@ -48,10 +54,11 @@ var
   LLineStr: string;
   LCodeStarted: Boolean;
 begin
-  FRichEdit.Lines.Clear;
+//  FRichEdit.Lines.Clear;
+  FHtmlViewer.Text := AStrings.Text;
   FCurrentColor := TUtilsOTA.ActiveThemeColorDefault;
-  FRichEdit.SelAttributes.Color := FCurrentColor;
-  FRichEdit.SelAttributes.Style := [];
+//  FRichEdit.SelAttributes.Color := FCurrentColor;
+//  FRichEdit.SelAttributes.Style := [];
 
   LCodeStarted := False;
   for LLineNum := 0 to Pred(AStrings.Count) do
@@ -71,7 +78,7 @@ begin
     begin
       LCodeStarted := False;
       FCurrentColor := TUtilsOTA.ActiveThemeColorDefault;
-      FRichEdit.SelAttributes.Color := FCurrentColor;
+//      FRichEdit.SelAttributes.Color := FCurrentColor;
       Continue;
     end;
 
@@ -85,7 +92,7 @@ begin
     else
       FCurrentColor := TUtilsOTA.ActiveThemeColorDefault;
 
-    FRichEdit.SelAttributes.Color := FCurrentColor;
+//    FRichEdit.SelAttributes.Color := FCurrentColor;
 
     //Optional use of one of the following lines
     //FRichEdit.Lines.Add(LLineStr);
@@ -100,8 +107,8 @@ begin
     Self.BoldInWordsBetweenBacktick(ALineStr)
   else if ALineStr.Contains(ASTERISK + ASTERISK) then
     Self.BoldInWordsBetweenTwoAsterisk(ALineStr)
-  else
-    FRichEdit.Lines.Add(IfThen(ALineStr.IsEmpty, ' ', ALineStr));
+//  else
+//    FRichEdit.Lines.Add(IfThen(ALineStr.IsEmpty, ' ', ALineStr));
 end;
 
 procedure TDelphiAIDevChatProcessResponse.BoldInWordsBetweenBacktick(const ALineStr: string);
@@ -131,31 +138,31 @@ begin
     if(LCurrentLetter = BACKTICK)and(LNextLetter <> BACKTICK)then
     begin
       LCodeStarted := False;
-      FRichEdit.SelAttributes.Style := [];
+//      FRichEdit.SelAttributes.Style := [];
       Continue;
     end;
 
-    SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
-    if LCodeStarted then
-      FRichEdit.SelAttributes.Style := [fsBold]
-    else
-      FRichEdit.SelAttributes.Style := [];
+//    SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
+//    if LCodeStarted then
+//      FRichEdit.SelAttributes.Style := [fsBold]
+//    else
+//      FRichEdit.SelAttributes.Style := [];
 
-    FRichEdit.SelAttributes.Color := FCurrentColor;
+//    FRichEdit.SelAttributes.Color := FCurrentColor;
 
-    if LLineStarted then
-      FRichEdit.SelText := LCurrentLetter
-    else
-    begin
-      FRichEdit.Lines.Add('');
-      FRichEdit.SelText := LCurrentLetter;
+//    if LLineStarted then
+//      FRichEdit.SelText := LCurrentLetter
+//    else
+//    begin
+//      FRichEdit.Lines.Add('');
+//      FRichEdit.SelText := LCurrentLetter;
 
       LLineStarted := True;
-    end;
-    SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
+//    end;
+//    SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
   end;
-  FRichEdit.SelText := ' ';
-  SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
+//  FRichEdit.SelText := ' ';
+//  SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
 end;
 
 procedure TDelphiAIDevChatProcessResponse.BoldInWordsBetweenTwoAsterisk(const ALineStr: string);
@@ -188,33 +195,33 @@ begin
     if(LCurrentLetter = ASTERISK)and(LNextLetter = ASTERISK)then
     begin
       LCodeStarted := False;
-      FRichEdit.SelAttributes.Style := [];
+//      FRichEdit.SelAttributes.Style := [];
       Inc(LPosLetter, 2);
       Continue;
     end;
 
-    SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
-    if LCodeStarted then
-      FRichEdit.SelAttributes.Style := [fsBold]
-    else
-      FRichEdit.SelAttributes.Style := [];
+//    SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
+//    if LCodeStarted then
+//      FRichEdit.SelAttributes.Style := [fsBold]
+//    else
+//      FRichEdit.SelAttributes.Style := [];
 
-    FRichEdit.SelAttributes.Color := FCurrentColor;
+//    FRichEdit.SelAttributes.Color := FCurrentColor;
 
-    if LLineStarted then
-      FRichEdit.SelText := LCurrentLetter
-    else
-    begin
-      FRichEdit.Lines.Add('');
-      FRichEdit.SelText := LCurrentLetter;
-
-      LLineStarted := True;
-    end;
-    SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
+//    if LLineStarted then
+//      FRichEdit.SelText := LCurrentLetter
+//    else
+//    begin
+//      FRichEdit.Lines.Add('');
+//      FRichEdit.SelText := LCurrentLetter;
+//
+//      LLineStarted := True;
+//    end;
+//    SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
     Inc(LPosLetter);
   end;
-  FRichEdit.SelText := ' ';
-  SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
+//  FRichEdit.SelText := ' ';
+//  SendMessage(FRichEdit.Handle, WM_VSCROLL, SB_BOTTOM, 0);
 end;
 
 end.

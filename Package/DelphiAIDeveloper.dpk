@@ -32,7 +32,10 @@ package DelphiAIDeveloper;
 requires
   rtl,
   designide,
-  RESTComponents;
+  RESTComponents,
+  FrameViewer,
+  vcldb,
+  TextEditor.Delphi.Athens.Runtime;
 
 contains
   DelphiAIDev.Register in '..\Src\DelphiAIDev.Register.pas',
@@ -74,6 +77,16 @@ contains
   DelphiAIDev.Utils.ABMenuAction in '..\Src\Utils\DelphiAIDev.Utils.ABMenuAction.pas',
   DelphiAIDev.IDE.Splash in '..\Src\IDE\Splash\DelphiAIDev.IDE.Splash.pas',
   DelphiAIDev.Chat.ProcessResponse in '..\Src\Chat\DelphiAIDev.Chat.ProcessResponse.pas',
-  DelphiAIDev.AI.Groq in '..\Src\AI\DelphiAIDev.AI.Groq.pas';
+  DelphiAIDev.AI.Groq in '..\Src\AI\DelphiAIDev.AI.Groq.pas',
+  CodeToHtml in '..\Src\ThirdParty\CodeToHtml.pas',
+  MarkdownCommonMark in '..\Src\ThirdParty\MarkdownCommonMark.pas',
+  MarkdownDaringFireball in '..\Src\ThirdParty\MarkdownDaringFireball.pas',
+  MarkdownMathCode in '..\Src\ThirdParty\MarkdownMathCode.pas',
+  MarkdownProcessor in '..\Src\ThirdParty\MarkdownProcessor.pas',
+  MarkdownTables in '..\Src\ThirdParty\MarkdownTables.pas',
+  MarkdownTxtMark in '..\Src\ThirdParty\MarkdownTxtMark.pas',
+  MarkdownUtils in '..\Src\ThirdParty\MarkdownUtils.pas',
+  TextEditor.ExportToHTML in '..\Src\ThirdParty\TextEditor.ExportToHTML.pas',
+  MarkdownCodeCollector in '..\Src\ThirdParty\MarkdownCodeCollector.pas';
 
 end.

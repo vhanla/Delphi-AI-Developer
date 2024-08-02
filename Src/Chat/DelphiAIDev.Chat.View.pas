@@ -30,7 +30,13 @@ uses
   DelphiAIDev.Settings,
   DelphiAIDev.ModuleCreator,
   DelphiAIDev.DefaultsQuestions.PopupMenu,
-  DelphiAIDev.Chat.ProcessResponse;
+  DelphiAIDev.Chat.ProcessResponse,
+  HTMLUn2,
+  HtmlView,
+  HtmlGlobals,
+  MarkdownProcessor,
+  MarkdownUtils,
+  MarkdownCodeCollector;
 
 type
   TDelphiAIDevChatView = class(TDockableForm)
@@ -44,7 +50,6 @@ type
     pnBackQuestion: TPanel;
     mmQuestion: TMemo;
     N1: TMenuItem;
-    mmReturn: TRichEdit;
     Splitter1: TSplitter;
     pnWait: TPanel;
     ShapeWait: TShape;
@@ -74,6 +79,11 @@ type
     pMenuQuestions: TPopupMenu;
     btnCleanAll: TSpeedButton;
     Groq1: TMenuItem;
+    HtmlViewer1: THtmlViewer;
+    pMenuCodeActions: TPopupMenu;
+    Copytoclipboard1: TMenuItem;
+    Insert1: TMenuItem;
+    Createnewunit1: TMenuItem;
     procedure FormShow(Sender: TObject);
     procedure cBoxSizeFontKeyPress(Sender: TObject; var Key: Char);
     procedure Cut1Click(Sender: TObject);
@@ -101,6 +111,11 @@ type
     procedure btnDefaultsQuestionsClick(Sender: TObject);
     procedure Clear1Click(Sender: TObject);
     procedure btnCleanAllClick(Sender: TObject);
+    procedure HtmlViewer1ObjectClick(Sender, Obj: TObject;
+      const OnClick: ThtString);
+    procedure Copytoclipboard1Click(Sender: TObject);
+    procedure Insert1Click(Sender: TObject);
+    procedure Createnewunit1Click(Sender: TObject);
   private
     FChat: TDelphiAIDevChat;
     FSettings: TDelphiAIDevSettings;
@@ -190,12 +205,22 @@ begin
 
   FChat := TDelphiAIDevChat.Create;
   FSettings := TDelphiAIDevSettings.GetInstance;
-  FProcessResponse := TDelphiAIDevChatProcessResponse.Create(mmReturn);
+//  FProcessResponse := TDelphiAIDevChatProcessResponse.Create(mmReturn);
+  FProcessResponse := TDelphiAIDevChatProcessResponse.Create(HtmlViewer1);
   FPopupMenuQuestions := TDelphiAIDevDefaultsQuestionsPopupMenu.Create;
   FQuestionOnShow := '';
 
   Self.ConfScreenOnCreate;
   Self.FillMemoReturnWithFile;
+end;
+
+procedure TDelphiAIDevChatView.Createnewunit1Click(Sender: TObject);
+var
+  LText: string;
+begin
+  LText := SourceCodeCollection.GetString(SourceCodeCollection.Selected);
+  if not LText.IsEmpty then
+    TDelphiAIDevModuleCreator.New.CreateNewUnit(LText);
 end;
 
 destructor TDelphiAIDevChatView.Destroy;
@@ -230,7 +255,8 @@ end;
 
 procedure TDelphiAIDevChatView.ConfScreenOnCreate;
 begin
-  mmReturn.Lines.Clear;
+//  mmReturn.Lines.Clear;
+  HtmlViewer1.Clear;
 
   pnWait.Visible := False;
   FbtnUseCurrentUnitCodeWidth := btnUseCurrentUnitCode.Width;
@@ -345,17 +371,19 @@ end;
 procedure TDelphiAIDevChatView.FillMemoReturnWithFile;
 begin
   if(FileExists(TUtils.GetPathFileChat))then
-    mmReturn.Lines.LoadFromFile(TUtils.GetPathFileChat)
+//    mmReturn.Lines.LoadFromFile(TUtils.GetPathFileChat)
+    HtmlViewer1.LoadFromFile(TUtils.GetPathFileChat)
 end;
 
 procedure TDelphiAIDevChatView.SaveMemoReturnInFile;
 begin
-  mmReturn.Lines.SaveToFile(TUtils.GetPathFileChat);
+//  mmReturn.Lines.SaveToFile(TUtils.GetPathFileChat);{ TODO : save lines to file }
 end;
 
 procedure TDelphiAIDevChatView.SelectAll1Click(Sender: TObject);
 begin
-  mmReturn.SelectAll;
+  HtmlViewer1.SelectAll;
+//  mmReturn.SelectAll;
 end;
 
 procedure TDelphiAIDevChatView.cBoxSizeFontKeyPress(Sender: TObject; var Key: Char);
@@ -366,17 +394,24 @@ end;
 
 procedure TDelphiAIDevChatView.Cut1Click(Sender: TObject);
 begin
-  mmReturn.CutToClipboard;
+  HtmlViewer1.CopyToClipboard;
+//  mmReturn.CutToClipboard;
 end;
 
 procedure TDelphiAIDevChatView.Copy1Click(Sender: TObject);
 begin
-  mmReturn.CopyToClipboard;
+//  mmReturn.CopyToClipboard;
+  HtmlViewer1.CopyToClipboard;
+end;
+
+procedure TDelphiAIDevChatView.Copytoclipboard1Click(Sender: TObject);
+begin
+  Clipboard.AsText := SourceCodeCollection.GetString(SourceCodeCollection.Selected);
 end;
 
 procedure TDelphiAIDevChatView.Paste1Click(Sender: TObject);
 begin
-  mmReturn.PasteFromClipboard;
+//  mmReturn.PasteFromClipboard;{ TODO : paste from clipboard }
 end;
 
 procedure TDelphiAIDevChatView.btnUseCurrentUnitCodeClick(Sender: TObject);
@@ -425,7 +460,8 @@ begin
 
   Self.ValidateRegistrationOfSelectedAI;
 
-  mmReturn.Lines.Clear;
+//  mmReturn.Lines.Clear;
+  HtmlViewer1.Clear;
   Self.WaitingFormON;
 
   LQuestion := FSettings.LanguageQuestions.GetLanguageDefinition;
@@ -457,14 +493,33 @@ begin
         TThread.Synchronize(nil,
           procedure
           begin
-            mmReturn.Lines.BeginUpdate;
+//            mmReturn.Lines.BeginUpdate;
             try
               //Optional use of one of the following lines
-              FProcessResponse.AddResponseComplete(FChat.Response);
+              // preprocess markdown to html
+              var md := TMarkdownProcessor.CreateDialect(mdTxtMark);
+              try
+//              FProcessResponse.AddResponseComplete(FChat.Response);
+                var lines := TStringList.Create;
+                SourceCodeCollection.Clear;
+                lines.Text := md.process(FChat.Response.Text);
+                if TUtilsOTA.ActiveThemeIsDark then
+                  lines.Text := '<html><head><style>body{color: #fff; background: #2d2d2d;}</style></head><body>'+
+                    lines.Text + '</body></html>'
+                else
+                  lines.Text := '<html><head><style>body{color: #000; background: #fff;}</style></head><body>'+
+                    lines.Text + '</body></html>';
+
+                FProcessResponse.AddResponseComplete(lines);
+                lines.Free;
+              finally
+                md.Free;
+              end;
+
               Self.Last;
               //Self.AddResponseSimple(FChat.Response.Text);
             finally
-              mmReturn.Lines.EndUpdate;
+//              mmReturn.Lines.EndUpdate;
             end;
           end);
       finally
@@ -512,9 +567,9 @@ end;
 procedure TDelphiAIDevChatView.AddResponseSimple(const AString: string);
 begin
   Self.Last;
-  mmReturn.SelAttributes.Color := TUtilsOTA.ActiveThemeColorDefault;
-  mmReturn.SelAttributes.Style := [];
-  mmReturn.Lines.Add(AString);
+//  mmReturn.SelAttributes.Color := TUtilsOTA.ActiveThemeColorDefault;
+//  mmReturn.SelAttributes.Style := [];
+//  mmReturn.Lines.Add(AString);
   Self.Last;
 end;
 
@@ -631,7 +686,8 @@ end;
 procedure TDelphiAIDevChatView.WaitingFormON;
 begin
   pnWait.Visible := False;
-  TUtils.CenterPanel(pnWait, mmReturn);
+//  TUtils.CenterPanel(pnWait, mmReturn);
+  TUtils.CenterPanel(pnWait, HtmlViewer1);
   pnWait.Visible := True;
 end;
 
@@ -642,10 +698,10 @@ end;
 
 procedure TDelphiAIDevChatView.ProcessWordWrap;
 begin
-  if WordWrap1.Checked then
-    mmReturn.ScrollBars := ssVertical
-  else
-    mmReturn.ScrollBars := ssBoth;
+//  if WordWrap1.Checked then
+//    mmReturn.ScrollBars := ssVertical
+//  else
+//    mmReturn.ScrollBars := ssBoth;
 end;
 
 procedure TDelphiAIDevChatView.WaitingFormOFF;
@@ -655,7 +711,8 @@ end;
 
 procedure TDelphiAIDevChatView.Last;
 begin
-  SendMessage(mmReturn.Handle, WM_VSCROLL, SB_BOTTOM, 0);
+//  SendMessage(mmReturn.Handle, WM_VSCROLL, SB_BOTTOM, 0);
+  SendMessage(HtmlViewer1.Handle, WM_VSCROLL, SB_BOTTOM, 0);
 end;
 
 procedure TDelphiAIDevChatView.lbCurrentAIClick(Sender: TObject);
@@ -665,10 +722,22 @@ end;
 
 function TDelphiAIDevChatView.GetSelectedTextOrAllFromReturn: string;
 begin
-  if not mmReturn.SelText.Trim.IsEmpty then
-    Result := mmReturn.SelText
+//  if not mmReturn.SelText.Trim.IsEmpty then
+  if not HtmlViewer1.SelText.Trim.IsEmpty then
+  begin
+    var LText := '';
+    // fix non-breaking space and replace with regular space returned by HtmlViewer
+    for var i := 1 to Length(HtmlViewer1.SelText) do
+    begin
+      if HtmlViewer1.SelText[i] = WideChar($A0) then
+        LText := LText + ' '
+      else
+        LText := LText + HtmlViewer1.SelText[i];
+    end;
+    Result := UTF8Encode(LText) // mmReturn.SelText
+  end
   else
-    Result := mmReturn.Lines.Text;
+    Result := HtmlViewer1.SelHtml;// mmReturn.Lines.Text;
 end;
 
 function TDelphiAIDevChatView.GetSelectedTextOrAllOrAbort: string;
@@ -676,6 +745,19 @@ begin
   Result := Self.GetSelectedTextOrAllFromReturn;
   if Result.Trim.IsEmpty then
     TUtils.ShowMsgAndAbort('There is no data to be used in this action');
+end;
+
+procedure TDelphiAIDevChatView.HtmlViewer1ObjectClick(Sender, Obj: TObject;
+  const OnClick: ThtString);
+var
+  I: Integer;
+begin
+  // OnClick contains the index of SourceCodeCollection which holds the raw source code
+  I := OnClick.ToInteger;
+  if SourceCodeCollection.GetCount >= I then
+    SourceCodeCollection.Select(I-1);
+//    Clipboard.AsText := SourceCodeCollection.GetString(I-1);
+  pMenuCodeActions.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
 end;
 
 procedure TDelphiAIDevChatView.btnInsertAtCursorClick(Sender: TObject);
@@ -710,13 +792,14 @@ begin
   Self.GetSelectedTextOrAllOrAbort;
 
   LFileName := TUtils.GetFileName('rtf');
-  mmReturn.Lines.SaveToFile(LFileName);
+//  mmReturn.Lines.SaveToFile(LFileName);
   TUtils.ShowV('File saved successfully');
 end;
 
 procedure TDelphiAIDevChatView.Clear1Click(Sender: TObject);
 begin
-  mmReturn.Lines.Clear;
+//  mmReturn.Lines.Clear;
+  HtmlViewer1.Clear;
 end;
 
 procedure TDelphiAIDevChatView.btnMoreActionsClick(Sender: TObject);
@@ -726,18 +809,30 @@ end;
 
 procedure TDelphiAIDevChatView.InitializeRichEditReturn;
 begin
-  mmReturn.SelAttributes.Name := 'Courier New';
-  mmReturn.SelAttributes.Size := 10;
+//  mmReturn.SelAttributes.Name := 'Courier New';
+//  mmReturn.SelAttributes.Size := 10;
 
   if TUtilsOTA.ActiveThemeIsDark then
   begin
-    mmReturn.Color := $004A4136;
-    mmReturn.SelAttributes.Color := clWhite;
+//    mmReturn.Color := $004A4136;
+//    mmReturn.SelAttributes.Color := clWhite;
   end
   else
   begin
-    mmReturn.Color := clWindow;
-    mmReturn.SelAttributes.Color := clWindowText;
+//    mmReturn.Color := clWindow;
+//    mmReturn.SelAttributes.Color := clWindowText;
+  end;
+end;
+
+procedure TDelphiAIDevChatView.Insert1Click(Sender: TObject);
+var
+  LText: string;
+begin
+  LText := SourceCodeCollection.GetString(SourceCodeCollection.Selected);
+  if not LText.IsEmpty then
+  begin
+    TUtilsOTA.DeleteBlockTextSelectedInEditor;
+    TUtilsOTA.InsertBlockTextIntoEditor(LText);
   end;
 end;
 
@@ -790,7 +885,8 @@ end;
 procedure TDelphiAIDevChatView.btnCleanAllClick(Sender: TObject);
 begin
   mmQuestion.Lines.Clear;
-  mmReturn.Lines.Clear;
+//  mmReturn.Lines.Clear;
+  HtmlViewer1.Clear;
 end;
 
 initialization
